@@ -44,7 +44,7 @@ setup(
     packages=find_packages(where="."),
     include_package_data=True,
     python_requires=">={}".format(MIN_VERSION),
-    install_requires=["docker", "yamale"],
+    install_requires=["python-on-whales", "yamale"],
     tests_require=[
         "pytest",
         "pytest-cov",
