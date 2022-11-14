@@ -5,8 +5,7 @@ import yamale
 import yaml
 from pathlib import Path
 from typing import Iterable, Union, List, AnyStr
-import docker
-from docker.utils import kwargs_from_env
+from python_on_whales import docker
 import sys
 
 MAX_NUM_WORKERS = int(multiprocessing.cpu_count() // 2)
@@ -40,14 +39,6 @@ def _absolute_dir(path: Union[Path, str] = None) -> Path:
     return _path
 
 
-def get_high_level_docker_api():
-    return docker.from_env()
-
-
-def get_low_level_docker_api():
-    return docker.APIClient(**kwargs_from_env())
-
-
 def parse_stream(out) -> List[AnyStr]:
     data = json.loads(out)
     if "error" in data:
@@ -75,7 +66,6 @@ def do_build(
     dockerfile = _absolute_file(dockerfile)
     context = _absolute_dir(context)
     do_print(f"Building {dockerfile} from context {context}", name=name, quiet=quiet)
-    api = get_low_level_docker_api()
     name = full_name if name is None else f"{name}|{full_name}"
     if not str(dockerfile).startswith(str(context)):
         raise FileNotFoundError(
@@ -88,15 +78,15 @@ def do_build(
             f"is blank: {_dockerfile}"
         )
     options = {
-        "path": str(context),
-        "dockerfile": _dockerfile,
-        "tag": f"{full_name}:{tag}",
-        "nocache": rebuild,
-        "quiet": False,
+        "context_path": context,
+        "file": dockerfile,
+        "tags": f"{full_name}:{tag}",
+        "cache": not rebuild,
+        "stream_logs": True
     }
     do_print(f"Building: {options}", name=name, quiet=quiet)
-    for out in api.build(**options):
-        lines = parse_stream(out)
+    for out in docker.build(**options):
+        lines = out  # parse_stream(out)
         for line in lines.rstrip("\n").split("\n"):
             do_print(line, name=name, quiet=quiet)
         if "ERROR: " in lines:
@@ -104,11 +94,10 @@ def do_build(
 
 
 def do_push(full_name: str, tags: list, quiet: bool = False, name: str = None) -> None:
-    api = get_high_level_docker_api()
     name = full_name if name is None else f"{name}|{full_name}"
     for tag in tags:
         do_print(f"Pushing: {full_name}:{tag}", name=name, quiet=quiet)
-        api.images.push(full_name, tag=tag)
+        docker.push(f"{full_name}:{tag}", quiet=quiet)
 
 
 def make_image(
