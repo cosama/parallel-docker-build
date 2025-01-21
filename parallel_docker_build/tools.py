@@ -224,8 +224,10 @@ def make_images(
 def get_dockerfiles_from_path(path: Union[str, Path] = None, name: str = None) -> list:
     path = _absolute_path(path)
     dockerfiles = []
-    for p in path.rglob("Dockerfile*"):
-        if p.is_dir():
+    for p in path.iterdir():
+        if "Dockerfile" not in str(p):
+            do_print(f"Skipping file that is not a dockerfile: {p}", name=name)
+        elif p.is_dir():
             do_print(f"Skipping directory: {p}", name=name)
         else:
             dockerfiles.append(p)
