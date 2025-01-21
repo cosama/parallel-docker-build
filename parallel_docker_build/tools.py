@@ -84,7 +84,7 @@ def do_build(
         "tags": f"{full_name}:{tag}",
         "cache": not rebuild,
         "stream_logs": True,
-        "platforms": [platform],
+        "platforms": [platform] if platform else None,
     }
     do_print(f"Building: {options}", name=name, quiet=quiet)
     for out in docker.build(**options):
