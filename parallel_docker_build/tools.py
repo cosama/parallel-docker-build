@@ -62,6 +62,7 @@ def do_build(
     quiet: bool = False,
     name: str = None,
     tag: str = "latest",
+    platform: str = None,
 ) -> None:
     dockerfile = _absolute_file(dockerfile)
     context = _absolute_dir(context)
@@ -82,7 +83,8 @@ def do_build(
         "file": dockerfile,
         "tags": f"{full_name}:{tag}",
         "cache": not rebuild,
-        "stream_logs": True
+        "stream_logs": True,
+        "platforms": [platform],
     }
     do_print(f"Building: {options}", name=name, quiet=quiet)
     for out in docker.build(**options):
@@ -125,13 +127,15 @@ def make_image(
             raise ValueError(
                 f"Dockerfile suffix tags must all be lowercase: {dockerfile}"
             )
-    image_arch = "x86_64"
+    image_arch, image_platform = "x86_64", None
     if "l4t" in extra_tags:
         do_print(f"Found Linux 4 Tegra tag in {dockerfile}", name=_name)
         image_arch = "aarch64"
+        image_platform = "linux/arm64"
     if "arm64v8" in extra_tags:
         do_print(f"Found ARM64v8 tag in {dockerfile}", name=_name)
         image_arch = "aarch64"
+        image_platform = "linux/arm64/v8"
     if image_arch != platform.machine():
         if allow_cross_platform:
             do_print(
@@ -160,6 +164,7 @@ def make_image(
         quiet=quiet,
         name=name,
         tag=tag,
+        platform=image_platform,
     )
     # Push it
     if push:
